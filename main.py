@@ -10,30 +10,29 @@ __version__ = "0.1.0"
 __license__ = "MIT"
 
 
-def main(args):
-    """Main entry point of the app"""
-    print("hello world")
-    print(args)
-
-
 if __name__ == "__main__":
     epub_file_path = r"C:\Users\small\Calibre Library\Duglass Adamss\Galaktikas celvedis stopetajiem-1 (65)\Galaktikas celvedis stopetajiem - Duglass Adamss.epub"
-    extracted_text = extract_text_from_epub(epub_file_path, page_chunk_size=10)
+    # epub_file_path = r"C:\Users\small\Calibre Library\K. Arons\Braucam tuvu. Braucam talu (70)\Braucam tuvu. Braucam talu - K. Arons.epub"
 
-    extracted_text = [extracted_text[0]]
-    # want to make a list where each item is the text from 10 pages
-    results = asyncio.run(request_nlp_api(extracted_text))
-    # flatten results so that it's only a dictionary of sentences
-    # check this extends the list rather than just replaces it with the last result
-    sentence_dict = {"sentences": result["sentences"] for result in results}
-    # join together broken down by page
+    # extracted_text = extract_text_from_epub(epub_file_path, page_chunk_size=12)
 
-    # todo: shoud we process results into Sentence objects first then run key word extraction for each
-    # page
+    # results = asyncio.run(request_nlp_api(extracted_text))
 
-    # mapping = make_page_sentence_map(sentences)
-    # page = results[0]["sentences"][39:388]
-    pages = sentences_to_pages(sentence_dict)
-    text, lemma_text, stop_words, lemma_sentence_map = make_page_lemma_text(page)
+    results = []
+    # "hitchhikers_01.json", , "hitchhikers_02.json", "hitchhikers_03.json", "hitchhikers_04.json"
+    for file in [
+        "hitchhikers_01.json",
+        "hitchhikers_02.json",
+    ]:
+        with open(file, "r") as f:
+            results.append(json.load(f))
 
-    top_words = extract_words(lemma_text, stop_words, "debugging.txt")
+    sentence_list = [
+        Sentence(sentence) for result in results for sentence in result["sentences"]
+    ]
+    # todo investigate make_lemma_text that is input to key word extraction
+    # todo chapter 2 has key eords missing
+    pages = sentences_to_pages(sentence_list)
+
+    # # reconstruct output
+    construct_epub(epub_file_path, pages, "test2.epub")

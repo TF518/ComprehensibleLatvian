@@ -1,32 +1,18 @@
 import itertools
 import os
+from functools import partial
 
 import yake
+from googletrans import Translator
 
+# this is the string that is used when processing the input text to delimt start and end of a page
+PAGE_DELIMITER = "page_"
+PAGE_START_DELIMITER = PAGE_DELIMITER + "start_"
+PAGE_END_DELIMITER = PAGE_DELIMITER + "end_"
 
-def sentences_to_pages(sentences):
-    page_list = []
-    for index, sentence_dict in enumerate(sentences["sentences"]):
-        delimiter = sentence_dict["tokens"][0]["form"]
-        if delimiter.startswith("page_start_"):
-            page_number = delimiter.split("_")[-1]
-            start_idx = index
-        if delimiter.startswith("page_end_"):
-            end_idx = index
-            sentence_slice = slice(start_idx, end_idx)
-            page_sentences = [
-                Sentence(sentence)
-                for sentence in sentences["sentences"][sentence_slice]
-            ]
-            page_list.append(
-                Page(
-                    page_number=page_number,
-                    start_end_slice=sentence_slice,
-                    sentences=page_sentences,
-                )
-            )
-
-    return page_list
+# path to where the books stop words will be saved
+# will probs be set in the script later
+STOPWORD_SAVE_PATH = "./book_stopwords.txt"
 
 
 def make_page_sentence_map(all_sentence_dict: dict[str, list]):
@@ -34,10 +20,10 @@ def make_page_sentence_map(all_sentence_dict: dict[str, list]):
     page_sentence_mapping = {"pages": []}
     for index, sentence_dict in enumerate(all_sentence_dict["sentences"]):
         delimiter = sentence_dict["tokens"][0]["form"]
-        if delimiter.startswith("page_start_"):
+        if delimiter.startswith(PAGE_START_DELIMITER):
             page_number = delimiter.split("_")[-1]
             start_idx = index
-        if delimiter.startswith("page_end_"):
+        if delimiter.startswith(PAGE_END_DELIMITER):
             end_idx = index
             page_sentence_mapping["pages"].append(
                 {"page": page_number, "start_idx": start_idx, "end_idx": end_idx}
@@ -52,45 +38,41 @@ def make_page_sentence_map(all_sentence_dict: dict[str, list]):
 # page = results[0]["sentences"][1:38]
 
 
-def make_page_lemma_text(sentences: list[dict]):
-    text = ""
-    lemma_text = ""
-    stop_words = set()
-    # this will be {lemma: [ idx of sentence it occurs]}
-    # only the last sentence of the page is recorded this way so will be a list of len 1
-    # but making it a list in case later want to record multiple indicies
-    lemma_sentence_map = {}
+# def make_page_lemma_text(sentences: list[dict]):
+#     text = ""
+#     lemma_text = ""
+#     stop_words = set()
+#     # this will be {lemma: [ idx of sentence it occurs]}
+#     # only the last sentence of the page is recorded this way so will be a list of len 1
+#     # but making it a list in case later want to record multiple indicies
+#     lemma_sentence_map = {}
+#     for idx, ner_token_dict in enumerate(sentences):
+#         ner = ner_token_dict["ner"]
+#         tokens = ner_token_dict["tokens"]
+#         text += " ".join(
+#             [token["form"] for token in tokens if not token["form"].startswith("page_")]
+#         )
+#         lemma_text += " ".join(
+#             [
+#                 token["lemma"].lower()
+#                 for token in tokens
+#                 if not token["lemma"].startswith("page_")
+#             ]
+#         )
+#         lemma_sentence_map.update(
+#             {
+#                 token["lemma"]: [idx]
+#                 for token in tokens
+#                 if not token["lemma"].startswith("page_")
+#             }
+#         )
+#         # split named entities into single words then flatten into list
+#         stop_word_list = itertools.chain.from_iterable(
+#             [ne["text"].lower().split(" ") for ne in ner]
+#         )
+#         stop_words.update(stop_word_list)
 
-    for idx, ner_token_dict in enumerate(sentences):
-        ner = ner_token_dict["ner"]
-        tokens = ner_token_dict["tokens"]
-        text += " ".join(
-            [token["form"] for token in tokens if not token["form"].startswith("page_")]
-        )
-
-        lemma_text += " ".join(
-            [
-                token["lemma"].lower()
-                for token in tokens
-                if not token["lemma"].startswith("page_")
-            ]
-        )
-
-        lemma_sentence_map.update(
-            {
-                token["lemma"]: [idx]
-                for token in tokens
-                if not token["lemma"].startswith("page_")
-            }
-        )
-
-        # split named entities into single words then flatten into list
-        stop_word_list = itertools.chain.from_iterable(
-            [ne["text"].lower().split(" ") for ne in ner]
-        )
-        stop_words.update(stop_word_list)
-
-    return text, lemma_text, stop_words, lemma_sentence_map
+#     return text, lemma_text, stop_words, lemma_sentence_map
 
 
 def load_stopwords(file_name="stopwords.txt"):
@@ -117,7 +99,7 @@ def write_stopwords(file_name="temp.txt", stop_words=set()):
             file.write(str(item) + "\n")
 
 
-def extract_words(text: str, stop_words: set, save_path: str, no_key_words=10):
+def extract_key_words(text: str, stop_words: set, save_path: str, no_key_words=20):
     language = "lv"
     max_ngram_size = 1
     deduplication_threshold = 0.9
@@ -152,21 +134,90 @@ def extract_words(text: str, stop_words: set, save_path: str, no_key_words=10):
     return keywords
 
 
-class Page:
-    def __init__(self, page_number: int, start_end_slice: slice, sentences: list[dict]):
-        self.page_number = page_number
-        self.start_end_slice = start_end_slice
-        self.sentences = sentences
-        self.key_word: list[tuple] = []
-
-
 class Sentence:
     def __init__(self, sentence: dict):
         self.word_forms = []
         self.sentence = sentence
+        self.ner = sentence["ner"]
+        self.tokens = sentence["tokens"]
+
+        # self.lemmas: list[Lemma] = self.make_lemmas(sentence["tokens"])
+
+        self.text: str = self.make_text(sentence["tokens"])
+        self.lemma_text: str = self.make_lemma_text(sentence["tokens"])
+        self.stop_words: set = self.make_stop_words(sentence["ner"])
 
     def add_word_form(self, form):
         self.word_forms.append(form)
+
+    # def make_lemmas(self, tokens):
+    #     [
+    #         Lemma(token["lemma"].lower())
+    #         for token in tokens
+    #         if not token["lemma"].startswith(PAGE_DELIMITER)
+    #     ]
+
+    def make_text(self, tokens):
+        return " ".join(
+            [
+                token["form"]
+                for token in tokens
+                if not token["form"].startswith(PAGE_DELIMITER)
+            ]
+        )
+
+    def make_lemma_text(self, tokens):
+        return " ".join(
+            [
+                token["lemma"].lower()
+                for token in tokens
+                if not token["lemma"].startswith(PAGE_DELIMITER)
+            ]
+        )
+
+    def make_stop_words(self, ner):
+        # split named entities into single words then flatten into list
+        stop_word_list = itertools.chain.from_iterable(
+            [ne["text"].lower().split(" ") for ne in ner]
+        )
+        return set(stop_word_list)
+
+
+translator = Translator()
+translator_fn = partial(translator.translate, src="lv")
+
+
+class Page:
+    def __init__(
+        self,
+        page_number: int,
+        start_end_slice: slice,
+        sentences: list[Sentence],
+        translator=translator_fn,
+    ):
+        self.page_number = page_number
+        self.start_end_slice = start_end_slice
+        self.sentences = sentences
+        self.translator = translator
+
+        self.text: str = " ".join([sentence.text for sentence in sentences])
+        self.lemma_text: str = " ".join([sentence.lemma_text for sentence in sentences])
+        self.stop_words: set = set().union(
+            *[sentence.stop_words for sentence in sentences]
+        )
+
+        self._key_words: list[str] = extract_key_words(
+            text=self.lemma_text,
+            stop_words=self.stop_words,
+            save_path=STOPWORD_SAVE_PATH,
+        )
+
+        self.translated_kws: list[str] = [
+            translation.text for translation in self.translator(self._key_words)
+        ]
+        self.key_words: list[tuple[str, str]] = list(
+            zip(self._key_words, self.translated_kws)
+        )
 
 
 class WordForm:
@@ -178,7 +229,7 @@ class WordForm:
 
 class Lemma:
     def __init__(self, lemma):
-        self.lemma = lemma
+        self.lemma: str = lemma
         # todo: make this a dict where key is form.form and value is Form obj
         self.forms = []
 
@@ -186,5 +237,24 @@ class Lemma:
         self.forms.append(form)
 
 
-# main thing is that a page has key words
-# reconstruct by taking orginal pages and inserting new pages
+def sentences_to_pages(sentences: list[Sentence]):
+    page_list = []
+    for index, sentence_dict in enumerate(sentences):
+        delimiter = sentence_dict.tokens[0]["form"]
+        if delimiter.startswith(PAGE_START_DELIMITER):
+            page_number = delimiter.split("_")[-1]
+            start_idx = index
+        if delimiter.startswith(PAGE_END_DELIMITER):
+            end_idx = index
+            sentence_slice = slice(start_idx, end_idx)
+            page_sentences = sentences[sentence_slice]
+
+            page_list.append(
+                Page(
+                    page_number=page_number,
+                    start_end_slice=sentence_slice,
+                    sentences=page_sentences,
+                )
+            )
+
+    return page_list

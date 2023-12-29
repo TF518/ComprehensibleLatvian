@@ -3,22 +3,21 @@ import os
 
 import yake
 
+# def make_page_sentence_map(all_sentence_dict: dict[str, list]):
+#     # returns dict of form{pages: [{page: 1, start_idx:0, end_idx:19}, {...}] }
+#     page_sentence_mapping = {"pages": []}
+#     for index, sentence_dict in enumerate(all_sentence_dict["sentences"]):
+#         delimiter = sentence_dict["tokens"][0]["form"]
+#         if delimiter.startswith("page_start_"):
+#             page_number = delimiter.split("_")[-1]
+#             start_idx = index
+#         if delimiter.startswith("page_end_"):
+#             end_idx = index
+#             page_sentence_mapping["pages"].append(
+#                 {"page": page_number, "start_idx": start_idx, "end_idx": end_idx}
+#             )
 
-def make_page_sentence_map(all_sentence_dict: dict[str, list]):
-    # returns dict of form{pages: [{page: 1, start_idx:0, end_idx:19}, {...}] }
-    page_sentence_mapping = {"pages": []}
-    for index, sentence_dict in enumerate(all_sentence_dict["sentences"]):
-        delimiter = sentence_dict["tokens"][0]["form"]
-        if delimiter.startswith("page_start_"):
-            page_number = delimiter.split("_")[-1]
-            start_idx = index
-        if delimiter.startswith("page_end_"):
-            end_idx = index
-            page_sentence_mapping["pages"].append(
-                {"page": page_number, "start_idx": start_idx, "end_idx": end_idx}
-            )
-
-    return page_sentence_mapping
+#     return page_sentence_mapping
 
 
 # mapping = make_page_sentence_map(results)
@@ -27,45 +26,45 @@ def make_page_sentence_map(all_sentence_dict: dict[str, list]):
 # page = results[0]["sentences"][1:38]
 
 
-def make_page_lemma_text(sentences: list[dict]):
-    text = ""
-    lemma_text = ""
-    stop_words = set()
-    # this will be {lemma: [ idx of sentence it occurs]}
-    # only the last sentence of the page is recorded this way so will be a list of len 1
-    # but making it a list in case later want to record multiple indicies
-    lemma_sentence_map = {}
+# def make_page_lemma_text(sentences: list[dict]):
+#     text = ""
+#     lemma_text = ""
+#     stop_words = set()
+#     # this will be {lemma: [ idx of sentence it occurs]}
+#     # only the last sentence of the page is recorded this way so will be a list of len 1
+#     # but making it a list in case later want to record multiple indicies
+#     lemma_sentence_map = {}
 
-    for idx, ner_token_dict in enumerate(sentences):
-        ner = ner_token_dict["ner"]
-        tokens = ner_token_dict["tokens"]
-        text += " ".join(
-            [token["form"] for token in tokens if not token["form"].startswith("page_")]
-        )
+#     for idx, ner_token_dict in enumerate(sentences):
+#         ner = ner_token_dict["ner"]
+#         tokens = ner_token_dict["tokens"]
+#         text += " ".join(
+#             [token["form"] for token in tokens if not token["form"].startswith("page_")]
+#         )
 
-        lemma_text += " ".join(
-            [
-                token["lemma"].lower()
-                for token in tokens
-                if not token["lemma"].startswith("page_")
-            ]
-        )
+#         lemma_text += " ".join(
+#             [
+#                 token["lemma"].lower()
+#                 for token in tokens
+#                 if not token["lemma"].startswith("page_")
+#             ]
+#         )
 
-        lemma_sentence_map.update(
-            {
-                token["lemma"]: [idx]
-                for token in tokens
-                if not token["lemma"].startswith("page_")
-            }
-        )
+#         lemma_sentence_map.update(
+#             {
+#                 token["lemma"]: [idx]
+#                 for token in tokens
+#                 if not token["lemma"].startswith("page_")
+#             }
+#         )
 
-        # split named entities into single words then flatten into list
-        stop_word_list = itertools.chain.from_iterable(
-            [ne["text"].lower().split(" ") for ne in ner]
-        )
-        stop_words.update(stop_word_list)
+#         # split named entities into single words then flatten into list
+#         stop_word_list = itertools.chain.from_iterable(
+#             [ne["text"].lower().split(" ") for ne in ner]
+#         )
+#         stop_words.update(stop_word_list)
 
-    return text, lemma_text, stop_words, lemma_sentence_map
+#     return text, lemma_text, stop_words, lemma_sentence_map
 
 
 def load_stopwords(file_name="stopwords.txt"):
