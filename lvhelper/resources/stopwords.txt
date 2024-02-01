@@ -50,6 +50,7 @@ jūs
 ka
 kamēr
 kaut
+kas
 kolīdz
 kopš
 kā
@@ -74,6 +75,7 @@ lai
 lejpus
 līdz
 līdzko
+nav
 ne
 nebūt
 nedz
@@ -105,6 +107,7 @@ tapt
 tapāt
 tapšu
 taču
+tas
 te
 tiec
 tiek
