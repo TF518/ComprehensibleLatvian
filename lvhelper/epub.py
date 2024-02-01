@@ -1,14 +1,26 @@
+import asyncio
+import json
 from itertools import islice
 
+import aiohttp
 from bs4 import BeautifulSoup
 from ebooklib import epub
 
-from lvhelper.oop import Page
-
 
 def batched(iterable, n):
+    """
+    Groups elements of an iterable into batches of size 'n'.
+
+    Args:
+        iterable: The input iterable.
+        n (int): Batch size.
+
+    Returns:
+        Generator: A generator yielding batches of elements.
+    """
     # from itertools but later python version
     # batched('ABCDEFG', 3) --> ABC DEF G
+
     if n < 1:
         raise ValueError("n must be at least one")
     it = iter(iterable)
@@ -17,23 +29,28 @@ def batched(iterable, n):
 
 
 def extract_text_from_epub(epub_file_path, page_chunk_size=10) -> list[str]:
-    """Extract text from an epub into chunks of
+    """
+    Extracts text from an EPUB file into chunks.
 
     Args:
-        epub_file_path (_type_): _description_
-        page_chunk_size (int, optional): _description_. Defaults to 10.
+        epub_file_path (str): Path to the EPUB file.
+        page_chunk_size (int, optional): Number of pages in each chunk. Defaults to 10.
 
     Returns:
-        list[str]: _description_
+        List[str]: List of text chunks.
+
+    Note:
+        This function extracts text content from EPUB pages, groups it into chunks, and adds page identifiers for context.
+
+    Example:
+        ```python
+        text_chunks = extract_text_from_epub("sample.epub", page_chunk_size=5)
+        print(text_chunks)
+        ```
     """
     book = epub.read_epub(epub_file_path)
     page_chunks = []
     ids = []
-
-    # original_epub.items[10].id
-    # 'id328'
-
-    # if len page text == 0, page text - empty paage.
 
     for batch in batched(book.items, page_chunk_size):
         chunk_text = ""
@@ -61,20 +78,29 @@ def extract_text_from_epub(epub_file_path, page_chunk_size=10) -> list[str]:
     return page_chunks
 
 
-import asyncio
-import json
-
-import aiohttp
-
-
 def make_nlp_post_body(text: str, steps: list[str] = ["tokenizer", "morpho", "ner"]):
-    # full steps available: ["tokenizer", "morpho", "parser", "ner"]
+    """
+    Creates a POST request body for the ailab NLP API.
+
+    Args:
+        text (str): Input text to be processed.
+        steps (List[str], optional): NLP processing steps (tokenizer, morpho, parser, ner). Default is ["tokenizer", "morpho", "ner"].
+
+    Returns:
+        dict: A dictionary of url, headers and data
+
+    Example:
+        ```python
+        post_body = make_nlp_post_body("Sample text for NLP processing")
+        print(post_body)
+        ```
+    """
 
     end_point = "https://nlp.ailab.lv/api/nlp"
     headers = {"Content-Type": "application/json"}
 
     data = {
-        "steps": steps,  # maybe add ner to remove names
+        "steps": steps,
         "data": text,
     }
 
@@ -82,6 +108,15 @@ def make_nlp_post_body(text: str, steps: list[str] = ["tokenizer", "morpho", "ne
 
 
 async def fetch_data(post_body):
+    """
+    Asynchronously fetches data from a specified endpoint using a POST request.
+
+    Args:
+        post_body (dict): Dictionary containing information for the POST request, including URL, headers, and data.
+
+    Returns:
+        dict: Data received from the API response.
+    """
     async with aiohttp.ClientSession() as session:
         async with session.post(**post_body) as response:
             data = await response.json()
@@ -89,6 +124,15 @@ async def fetch_data(post_body):
 
 
 async def request_nlp_api(text_list: list[str]):
+    """
+    Asynchronously makes NLP API requests for a list of texts.
+
+    Args:
+        text_list (List[str]): List of texts to be processed by the NLP API.
+
+    Returns:
+        List[dict]: List of results received from the NLP API responses.
+    """
     request_bodies = [make_nlp_post_body(text) for text in text_list]
 
     tasks = [fetch_data(body) for body in request_bodies]
@@ -97,6 +141,23 @@ async def request_nlp_api(text_list: list[str]):
 
 
 def make_key_word_soup_tag(key_word: str, translation: str):
+    """
+    Creates a BeautifulSoup tag for a key word and its translation.
+
+    Args:
+        key_word (str): The key word.
+        translation (str): The translation of the key word.
+
+    Returns:
+        Tag: A BeautifulSoup tag representing the key word and its translation.
+
+    Example:
+        ```python
+        key_word_tag = make_key_word_soup_tag("apple", "ābols")
+        print(key_word_tag)
+        ```
+    """
+
     soup = BeautifulSoup("", "html.parser")
     key_word_tag = soup.new_tag("div", attrs={"class": "paragraph"})
     key_word_tag.string = "\n".join([key_word, translation])
@@ -122,7 +183,18 @@ def init_new_epub(original_epub: epub.EpubBook) -> epub.EpubBook:
     return new_book
 
 
-def construct_epub(epub_file_path: str, pages: list[Page], save_path: str):
+def construct_epub(epub_file_path: str, pages: list, save_path: str):
+    """
+    Constructs a new EPUB file with additional pages containing key word tags.
+
+    Args:
+        epub_file_path (str): Path to the original EPUB file.
+        pages (List[Page]): List of Page objects containing key words.
+        save_path (str): Path to save the new EPUB file.
+
+    Returns:
+        None. Writes an epub to save_path
+    """
     original_epub = epub.read_epub(epub_file_path)
     new_book = init_new_epub(original_epub=original_epub)
 
