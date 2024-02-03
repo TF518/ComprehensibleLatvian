@@ -1,6 +1,6 @@
-from lvhelper.anki import *
-from lvhelper.epub import *
-from lvhelper.oop import *
+from ComprehensibleLatvian.anki import *
+from ComprehensibleLatvian.epub import *
+from ComprehensibleLatvian.page_objects import *
 
 if __name__ == "__main__":
     epub_file_path = r"C:\Users\small\Calibre Library\Duglass Adamss\Galaktikas celvedis stopetajiem-1 (65)\Galaktikas celvedis stopetajiem - Duglass Adamss.epub"
@@ -30,8 +30,6 @@ if __name__ == "__main__":
         for lemma, form in sentence.lemma_form:
             container.add_lemma(lemma, form, sentence)
 
-    # todo investigate make_lemma_text that is input to key word extraction
-    # todo chapter 2 has key eords missing
     pages = sentences_to_pages(sentence_list)
 
     anki_cards = [
