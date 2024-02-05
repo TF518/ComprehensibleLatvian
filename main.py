@@ -6,25 +6,23 @@ if __name__ == "__main__":
     epub_file_path = r"C:\Users\small\Calibre Library\Duglass Adamss\Galaktikas celvedis stopetajiem-1 (65)\Galaktikas celvedis stopetajiem - Duglass Adamss.epub"
     # epub_file_path = r"c:\Users\small\Calibre Library\Dzoanna Ketlina Roulinga\Harijs Poters un filozofu akmens (38)\Harijs Poters un filozofu akmen - Dzoanna Ketlina Roulinga.epub"
 
-    # extracted_text = extract_text_from_epub(epub_file_path, page_chunk_size=12)
+    extracted_text = extract_text_from_epub(epub_file_path, page_chunk_size=12)
 
     results = asyncio.run(request_nlp_api(extracted_text))
 
     results = []
     # "hitchhikers_01.json", , "hitchhikers_02.json", "hitchhikers_03.json", "hitchhikers_04.json"
-    for file in [
-        "hitchhikers_01.json",
-        "hitchhikers_02.json",
-    ]:
-        with open(file, "r") as f:
-            results.append(json.load(f))
+    # for file in [
+    #     "hitchhikers_01.json",
+    #     "hitchhikers_02.json",
+    # ]:
+    #     with open(file, "r") as f:
+    #         results.append(json.load(f))
 
     sentence_list = [
         Sentence(sentence) for result in results for sentence in result["sentences"]
     ]
 
-    # todo use sentence.lemma_form to create a LemmaContainer for the book
-    #
     container = LemmaContainer()
     for sentence in sentence_list:
         for lemma, form in sentence.lemma_form:
@@ -39,7 +37,7 @@ if __name__ == "__main__":
     ]
 
     # with open("hp_anki_cards.json", "w", encoding='utf8') as f:
-    #     json.dump({"anki_cards": anki_cards}, f, indent=2)
+    #     json.dump({"deck_id": 123124235242, "anki_cards": anki_cards}, f, indent=2)
 
     # # reconstruct output
     construct_epub(epub_file_path, pages, "test2.epub")

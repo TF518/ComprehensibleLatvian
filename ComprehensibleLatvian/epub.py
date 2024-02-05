@@ -240,22 +240,3 @@ def construct_epub(epub_file_path: str, pages: list, save_path: str):
     epub.write_epub(save_path, new_book)
 
     return None
-
-
-if __name__ == "__main__":
-    epub_file_path = r"C:\Users\small\Calibre Library\Duglass Adamss\Galaktikas celvedis stopetajiem-1 (65)\Galaktikas celvedis stopetajiem - Duglass Adamss.epub"
-    extracted_text = extract_text_from_epub(epub_file_path, page_chunk_size=10)
-
-    # extracted_text = [extracted_text[0]]
-    # # want to make a list where each item is the text from 10 pages
-    # results = asyncio.run(request_nlp_api(extracted_text))
-    # # flatten results so that it's only a dictionary of sentences
-    # # check this extends the list rather than just replaces it with the last result
-    # # sentences = {'sentences': result['sentences'] for result in results}
-    # # join together broken down by page
-
-    # mapping = make_page_sentence_map(results)
-    # page = results[0]["sentences"][1:38]
-    # text, lemma_text, stop_words = make_page_lemma_text(page)
-
-    # top_words = extract_words(lemma_text, stop_words, "debugging.txt")
