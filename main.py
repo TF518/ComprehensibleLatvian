@@ -23,17 +23,17 @@ if __name__ == "__main__":
         Sentence(sentence) for result in results for sentence in result["sentences"]
     ]
 
-    container = LemmaContainer()
-    for sentence in sentence_list:
-        for lemma, form in sentence.lemma_form:
-            container.add_lemma(lemma, form, sentence)
+    lemma_container = LemmaContainer()
+    lemma_container.sentences_to_lemmas(sentence_list)
 
     pages = sentences_to_pages(sentence_list)
 
     anki_cards = [
         card
         for page in pages
-        for card in to_anki_cards(key_words=page.key_words, lemma_container=container)
+        for card in to_anki_cards(
+            key_words=page.key_words, lemma_container=lemma_container
+        )
     ]
 
     # with open("hp_anki_cards.json", "w", encoding='utf8') as f:
@@ -42,7 +42,6 @@ if __name__ == "__main__":
     # # reconstruct output
     construct_epub(epub_file_path, pages, "test2.epub")
 
-# todo  Complete sentences_to_lemmas
 # todo  add deck id to to_anki_cards output
 # todo  add create_anki_pkg function
 # todo  Give option to use all files in dir or independant

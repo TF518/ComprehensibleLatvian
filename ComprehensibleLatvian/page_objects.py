@@ -494,10 +494,19 @@ class LemmaContainer:
     def get_all_lemmas(self):
         return list(self.lemmas.values())
 
+    def sentences_to_lemmas(self, sentences: list[Sentence]):
+        """
+        Processes Sentences into lemma objects stored in self.lemmas
 
-def sentences_to_lemmas(sentences: list[Sentence], lemma_container: LemmaContainer):
-    for sentence in sentences:
-        pass
+        Args:
+            sentences (list[Sentence]): List of Sentence objects.
+
+        Returns:
+            None. Adds lemmas from sentences to self.lemmas
+        """
+        for sentence in sentences:
+            for lemma, form in sentence.lemma_form:
+                self.add_lemma(lemma, form, sentence)
 
 
 def sentences_to_pages(sentences: list[Sentence]):
