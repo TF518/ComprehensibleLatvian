@@ -151,7 +151,9 @@ def write_stopwords(file_name="stopwords.txt", stop_words=set()):
             file.write(str(item) + "\n")
 
 
-def extract_key_words(text: str, stop_words: set, save_path: str, no_key_words=20):
+def extract_key_words(
+    text: str, stop_words: set, save_path: str, no_key_words=20, load_all_in_dir=True
+):
     """
     Extracts key words from the given text and updates the stop words.
 
@@ -160,6 +162,7 @@ def extract_key_words(text: str, stop_words: set, save_path: str, no_key_words=2
         stop_words (set): Set of stop words.
         save_path (str): Path to the stop words file to be updated.
         no_key_words (int, optional): Number of key words to extract. Defaults to 20.
+        load_all_in_dir (bool, optional): Whether to load stopwords from all files in the directory. Defaults to False.
 
     Returns:
         List[str]: List of extracted key words.
@@ -178,7 +181,7 @@ def extract_key_words(text: str, stop_words: set, save_path: str, no_key_words=2
 
     default_stopwords = load_common_stopwords()
     # global stop words - load all previous stop words, add new ones in and save again
-    book_stopwords = load_local_stopwords(save_path)
+    book_stopwords = load_local_stopwords(save_path, load_all_in_dir=load_all_in_dir)
     book_stopwords.update(stop_words)
 
     all_stopwords = default_stopwords | book_stopwords
