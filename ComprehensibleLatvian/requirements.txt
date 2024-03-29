@@ -1,0 +1,5 @@
+aiohttp==3.9.3
+beautifulsoup4==4.9.3
+ebooklib==0.18
+googletrans==3.1.0a0
+yake==0.4.8
